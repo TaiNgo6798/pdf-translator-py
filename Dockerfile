@@ -1,28 +1,27 @@
-
-# 1. 使用官方 Python 3.9 的精简版镜像作为基础
+# 1. Use official Python 3.9 slim image as base
 FROM python:3.9-slim
 
-# 2. 如果你需要一些系统库支持，可在此处安装
-#    比如安装 gcc、libssl-dev 等 (仅举例)
+# 2. Install system libraries if needed
+#    For example, install gcc, libssl-dev, etc. (just examples)
 # RUN apt-get update && apt-get install -y --no-install-recommends \
 #     gcc \
 #     libssl-dev \
 #     && rm -rf /var/lib/apt/lists/*
 
-# 3. 设置工作目录
+# 3. Set working directory
 WORKDIR /app
 
-# 4. 将 requirements.txt 复制到容器内
+# 4. Copy requirements.txt into container
 COPY requirements.txt /app/
 
-# 5. 安装 Python 依赖包
+# 5. Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# 6. 复制项目源代码到容器内
+# 6. Copy project source code into container
 COPY . /app
 
-# 7. 暴露端口 12226（如你的项目需要此端口）
+# 7. Expose port 12226 (if your project needs this port)
 EXPOSE 12226
 
-# 8. 容器启动时，默认执行 Python 脚本
+# 8. When container starts, execute Python script by default
 CMD ["python", "app.py"]
