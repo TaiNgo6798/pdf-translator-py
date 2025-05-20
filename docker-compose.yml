@@ -1,7 +1,7 @@
 version: '3'
 services:
   polyglotpdf:
-    image: 2207397265/polyglotpdf:latest
+    build: .
     ports:
       - "12226:12226"
     volumes:
@@ -11,4 +11,3 @@ services:
       - ./static/target:/app/static/target # 翻译后PDF
       - ./static/merged_pdf:/app/static/merged_pdf # 合并PDF
     restart: unless-stopped
-

@@ -408,6 +408,26 @@ class main_function:
         """
         start_time = time.time()
         
+        def validate_and_fix_coords(x0, y0, x1, y1):
+            """Helper function to validate and fix coordinate values"""
+            # Set reasonable limits for PDF coordinates (typical PDF size limits)
+            MAX_COORD = 14400  # 200 inches * 72 points per inch
+            MIN_COORD = -14400
+            
+            # Clamp values to valid range
+            x0 = max(MIN_COORD, min(MAX_COORD, x0))
+            y0 = max(MIN_COORD, min(MAX_COORD, y0))
+            x1 = max(MIN_COORD, min(MAX_COORD, x1))
+            y1 = max(MIN_COORD, min(MAX_COORD, y1))
+            
+            # Ensure x1 > x0 and y1 > y0
+            if x1 <= x0:
+                x1 = x0 + 1
+            if y1 <= y0:
+                y1 = y0 + 1
+                
+            return x0, y0, x1, y1
+    
         for page_index, blocks in enumerate(self.pages_data):
             page = self.doc.load_page(page_index)
             
@@ -424,8 +444,9 @@ class main_function:
                 translated_text = block[2] if block[2] is not None else original_text
                 
                 # 计算扩展因子：最大限制为5%的扩展
-                len_ratio = min(1.05, max(1.01, len(translated_text) / max(1, len(original_text))))
-                
+                orig_len = len(original_text)
+                len_ratio = min(1.05, max(1.01, len(translated_text) / orig_len)) if orig_len > 0 else 1.01
+
                 x0, y0, x1, y1 = coords
                 width = x1 - x0
                 height = y1 - y0
@@ -451,7 +472,22 @@ class main_function:
                     y1 = y_center + 5
                 
                 enlarged_coords = (x0, y0, x1, y1)
-                rect = fitz.Rect(*enlarged_coords)
+
+                if any(abs(val) > 1e6 for val in [x0, y0, x1, y1]):
+                    print("Invalid rectangle values; skipping.")
+                    continue
+
+                x0, y0, x1, y1 = enlarged_coords
+                # Round coordinates to 5 decimal places and validate
+                x0, y0, x1, y1 = validate_and_fix_coords(
+                    round(x0, 5),
+                    round(y0, 5),
+                    round(x1, 5),
+                    round(y1, 5)
+                )
+                
+                # Create rect only if coordinates are valid
+                rect = fitz.Rect(x0, y0, x1, y1)
 
                 # 先尝试使用 Redact 遮盖
                 try:
@@ -511,7 +547,18 @@ class main_function:
                     text_size = float(block[7]) + 3 if len(block) > 7 else 12
                     
                     # 使用扩大后的坐标创建矩形
-                    rect = fitz.Rect(*enlarged_coords)
+
+                    x0, y0, x1, y1 = enlarged_coords
+                    # Round coordinates to 5 decimal places and validate
+                    x0, y0, x1, y1 = validate_and_fix_coords(
+                        round(x0, 5),
+                        round(y0, 5),
+                        round(x1, 5),
+                        round(y1, 5)
+                    )
+                    
+                    # Create rect only if coordinates are valid
+                    rect = fitz.Rect(x0, y0, x1, y1)
                     
                     # 组合CSS，添加自动调整大小和自动换行属性
                     css = css_prefix + f"""
@@ -528,12 +575,16 @@ class main_function:
                     """
                     
                     # 插入文本
-                    page.insert_htmlbox(
-                        rect,
-                        translated_text,
-                        css=css,
-                        rotate=angle
-                    )
+                    # Verify rect is valid before using
+                    if rect.is_valid and rect.get_area() > 0:
+                        page.insert_htmlbox(
+                            rect,
+                            translated_text,
+                            css=css,
+                            rotate=angle
+                        )
+                    else:
+                        print(f"Skipping invalid rectangle at page {page_index}")
             
             # 处理粗体字体文本块
             if bold_blocks:
@@ -572,7 +623,21 @@ class main_function:
                     text_size = float(block[7]) + 3 if len(block) > 7 else 12
                     
                     # 使用扩大后的坐标创建矩形
-                    rect = fitz.Rect(*enlarged_coords)
+                    if any(abs(val) > 1e6 for val in [x0, y0, x1, y1]):
+                        print("Invalid rectangle values; skipping.")
+                        continue
+                    
+                    x0, y0, x1, y1 = enlarged_coords
+                    # Round coordinates to 5 decimal places and validate
+                    x0, y0, x1, y1 = validate_and_fix_coords(
+                        round(x0, 5),
+                        round(y0, 5),
+                        round(x1, 5),
+                        round(y1, 5)
+                    )
+                    
+                    # Create rect only if coordinates are valid
+                    rect = fitz.Rect(x0, y0, x1, y1)
                     
                     # 组合CSS，添加自动调整大小和自动换行属性
                     css = css_prefix + f"""
@@ -589,12 +654,16 @@ class main_function:
                     """
                     
                     # 插入文本
-                    page.insert_htmlbox(
-                        rect,
-                        translated_text,
-                        css=css,
-                        rotate=angle
-                    )
+                    # Verify rect is valid before using
+                    if rect.is_valid and rect.get_area() > 0:
+                        page.insert_htmlbox(
+                            rect,
+                            translated_text,
+                            css=css,
+                            rotate=angle
+                        )
+                    else:
+                        print(f"Skipping invalid rectangle at page {page_index}")
             
             # 每20页打印一次简单进度
             if page_index % 20 == 0:
