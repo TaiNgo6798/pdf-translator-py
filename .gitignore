@@ -1,3 +1,8 @@
-/config
-/config.json
+__pycache__
+static/original
+static/target
+static/merged_pdf
+static/thumbnail
+recent.json.bak
+config.json.bak
 config.json
