@@ -23,7 +23,7 @@ class Openai_translation:
             "messages": [
                 {
                     "role": "system",
-                    "content": f"You are a professional translator. Translate from {original_lang} to {target_lang}.Return only the translations.The text is mostly from Medical literature, please keep the original meaning."
+                    "content": f"You are a professional translator. Translate from {original_lang} to {target_lang}.Return only the translations.The text is from Medical equipment , MUST keep the original meaning."
                 },
                 {
                     "role": "user",

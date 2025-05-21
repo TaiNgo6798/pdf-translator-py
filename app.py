@@ -17,7 +17,7 @@ from convert2pdf import convert_to_pdf
 from threading import Timer
 from socketserver import ThreadingMixIn
 from werkzeug.serving import BaseWSGIServer, make_server
-
+import shutil
 
 class ThreadedWSGIServer(ThreadingMixIn, BaseWSGIServer):
     """
@@ -306,13 +306,23 @@ def delete_batch():
         success_count = 0
         failed_list = []
 
+        # removing files
+        original_dir = os.path.join(APP_DATA_DIR, 'static', 'original')
+        merged_pdf_dir = os.path.join(APP_DATA_DIR, 'static', 'merged_pdf')
+        thumbnail_dir = os.path.join(APP_DATA_DIR, 'static', 'thumbnail')
+        
+        for directory in [original_dir, merged_pdf_dir, thumbnail_dir]:
+            if os.path.exists(directory):
+                shutil.rmtree(directory)
+            os.makedirs(directory, exist_ok=True)
+
+
         for article_id in article_ids:
             try:
-                # 调用单条删除函数
+                # 调用原有的删除函数
                 success = delete_entry(int(article_id))
                 if success:
-                    # 如果删除成功也需要更新计数
-                    decrease_count()  # 假设你有一个 decrease_count() 函数
+                    decrease_count()
                     success_count += 1
                 else:
                     failed_list.append(article_id)
@@ -320,6 +330,7 @@ def delete_batch():
                 print(f"Error deleting article {article_id}: {str(e)}")
                 failed_list.append(article_id)
 
+       
         # 如果所有都成功，success_count == total
         return jsonify({
             'message': 'Batch delete attempted.',
